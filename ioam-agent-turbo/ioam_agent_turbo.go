@@ -6,7 +6,6 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"net"
 	"os"
 
 	"github.com/google/gopacket"
@@ -19,7 +18,6 @@ import (
 )
 
 const (
-	ETH_P_IPV6          = 0x86DD
 	IPV6_TLV_IOAM       = 49
 	IOAM_PREALLOC_TRACE = 0
 
@@ -54,10 +52,6 @@ func listDevices() {
 	}
 }
 
-func printIP6Address(addr net.IP) {
-	fmt.Printf("Source IP Address: %s\n", addr)
-}
-
 func sendResponsePacket(handle *pcap.Handle, origIP *layers.IPv6) {
 	buffer := gopacket.NewSerializeBuffer()
 	opts := gopacket.SerializeOptions{FixLengths: true, ComputeChecksums: true}
@@ -79,6 +73,8 @@ func sendResponsePacket(handle *pcap.Handle, origIP *layers.IPv6) {
 	// Send the packet
 	if err := handle.WritePacketData(buffer.Bytes()); err != nil {
 		log.Printf("Error sending packet: %v", err)
+	} else {
+		log.Printf("Sent DEX report to %s", origIP.SrcIP)
 	}
 }
 
@@ -86,6 +82,7 @@ func parseNodeData(p []byte, ttype uint32) (ioam_api.IOAMNode, error) {
 	node := ioam_api.IOAMNode{}
 	i := 0
 
+	log.Println(ttype)
 	if ttype&TRACE_TYPE_BIT0_MASK != 0 {
 		node.HopLimit = uint32(p[i])
 		node.Id = binary.BigEndian.Uint32(p[i:i+4]) & 0xFFFFFF
@@ -143,10 +140,11 @@ func parseNodeData(p []byte, ttype uint32) (ioam_api.IOAMNode, error) {
 }
 
 func parseIOAMTrace(p []byte) (*ioam_api.IOAMTrace, error) {
-	ns := int(binary.BigEndian.Uint16(p[:2]))
-	nodelen := int(p[2] >> 3)
-	remlen := int(p[3] & 0x07)
-	ttype := int(binary.BigEndian.Uint32(p[4:8]))
+	var ns, nodelen, remlen, ttype uint32
+	ns = uint32(binary.BigEndian.Uint16(p[:2]))
+	nodelen = uint32(p[2] >> 3)
+	remlen = uint32(p[3] & 0x7F)
+	ttype = binary.BigEndian.Uint32(p[4:8]) >> 8
 
 	var nodes []*ioam_api.IOAMNode
 	i := 8 + int(remlen)*4
@@ -155,22 +153,23 @@ func parseIOAMTrace(p []byte) (*ioam_api.IOAMTrace, error) {
 		node, err := parseNodeData(p[i:], uint32(ttype))
 		if err != nil {
 			return nil, err
-		}
-		i += nodelen
-
-		if ttype&TRACE_TYPE_BIT22_MASK != 0 {
-			if len(p[i:]) < 4 {
-				return nil, errors.New("invalid packet length")
 			}
-			opaqueLen := p[i]
-			node.IdWide = binary.BigEndian.Uint64(p[i : i+4])
-			if len(p[i:]) < 4+int(opaqueLen)*4 {
-				return nil, errors.New("invalid packet length")
+			i += int(nodelen) * 4
+			
+			if ttype&TRACE_TYPE_BIT22_MASK != 0 {
+				if len(p[i:]) < 4 {
+					return nil, errors.New("invalid packet length")
+				}
+				opaqueLen := p[i]
+				node.IdWide = binary.BigEndian.Uint64(p[i : i+4])
+				if len(p[i:]) < 4+int(opaqueLen)*4 {
+					return nil, errors.New("invalid packet length")
+				}
+				node.QueueDepth = binary.BigEndian.Uint32(p[i+4 : i+4+int(opaqueLen)*4])
+				i += 4 + int(opaqueLen)*4
 			}
-			node.QueueDepth = binary.BigEndian.Uint32(p[i+4 : i+4+int(opaqueLen)*4])
-			i += 4 + int(opaqueLen)*4
-		}
-
+						
+		log.Println(node.String())
 		nodes = append(nodes, &node)
 	}
 
@@ -183,26 +182,23 @@ func parseIOAMTrace(p []byte) (*ioam_api.IOAMTrace, error) {
 	return trace, nil
 }
 
-func parse(p []byte) ([]*ioam_api.IOAMTrace, error) {
-	if len(p) < 42 {
-		return nil, errors.New("packet too short")
+func parseHopByHop(p []byte) ([]*ioam_api.IOAMTrace, error) {
+	if len(p) < 8 {
+		return nil, errors.New("Hop-by-Hop header too short")
 	}
 
-	log.Println(p[45])
-	if p[6] != uint8(layers.IPProtocolIPv6HopByHop) {
-		return nil, nil
-	}
-
-	hbhLen := int(p[41] + 1) << 3
-	i := 42
+	hbhLen := int(p[1] + 1) << 3
+	i := 2
 	var traces []*ioam_api.IOAMTrace
 
 	for hbhLen > 0 {
-		if len(p[i:]) < 2 {
-			return nil, errors.New("invalid packet length")
+		if len(p[i:]) < 4 {
+			// Found padding or invalid trace data, return correctly parsed traces
+			return traces, nil
 		}
-		optType := p[i]
-		optLen := p[i+1] + 2
+		var optType, optLen uint8 
+		optType = p[i]
+		optLen = p[i+1] + 2
 
 		if optType == IPV6_TLV_IOAM && p[i+3] == IOAM_PREALLOC_TRACE {
 			trace, err := parseIOAMTrace(p[i+4 : i+int(optLen)])
@@ -221,26 +217,29 @@ func parse(p []byte) ([]*ioam_api.IOAMTrace, error) {
 	return traces, nil
 }
 
-func packetHandler(handle *pcap.Handle, packet gopacket.Packet, report func(trace *ioam_api.IOAMTrace)) {
+func packetHandler(handle *pcap.Handle, packet gopacket.Packet, report func(trace *ioam_api.IOAMTrace), dex bool) {
 	ipv6Layer := packet.Layer(layers.LayerTypeIPv6)
 	if ipv6Layer != nil {
 		ipv6, _ := ipv6Layer.(*layers.IPv6)
-		printIP6Address(ipv6.SrcIP)
-
+		
 		// Check if the next header field is Hop-by-Hop Options header
-		if ipv6.NextHeader == layers.IPProtocolIPv6HopByHop {
-			payload := packet.Data()
-			traces, err := parse(payload)
+		hbhLayer := packet.Layer(layers.LayerTypeIPv6HopByHop)
+		if hbhLayer != nil {
+			hbh, _ := hbhLayer.(*layers.IPv6HopByHop)
+			hbhHeader := hbh.LayerContents()
+			traces, err := parseHopByHop(hbhHeader)
 			if err != nil {
-				log.Printf("Error parsing IOAM trace: %v", err)
+				log.Printf("Error parsing Hop-by-Hop header: %v", err)
 				return
 			}
+
 			for _, trace := range traces {
 				report(trace)
 			}
 
-			// Send a response packet back to the source
-			sendResponsePacket(handle, ipv6)
+			if dex {
+				sendResponsePacket(handle, ipv6)
+			}
 		}
 	}
 }
@@ -248,8 +247,15 @@ func packetHandler(handle *pcap.Handle, packet gopacket.Packet, report func(trac
 func main() {
 	dev := flag.String("i", "", "Specify the interface to capture packets on")
 	list := flag.Bool("l", false, "List all available interfaces")
+	dex := flag.Bool("d", false, "Activate direct exporting")
 	output := flag.Bool("o", false, "Output traces to console")
+	help := flag.Bool("h", false, "View help")
 	flag.Parse()
+
+	if *help {
+		flag.Usage()
+		os.Exit(0)
+	}
 
 	if *list {
 		listDevices()
@@ -280,7 +286,7 @@ func main() {
 	} else {
 		collector := os.Getenv("IOAM_COLLECTOR")
 		if collector == "" {
-			log.Fatalf("IOAM collector is not defined")
+			log.Fatalf("'IOAM_COLLECTOR' environment variable not defined")
 		}
 
 		conn, err := grpc.Dial(collector, grpc.WithInsecure())
@@ -302,6 +308,6 @@ func main() {
 	packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
 
 	for packet := range packetSource.Packets() {
-		packetHandler(handle, packet, reportFunc)
+		packetHandler(handle, packet, reportFunc, *dex)
 	}
 }
