@@ -20,6 +20,7 @@ import (
 var DO_LOOPBACK bool
 
 const (
+	// For testing purposes
 	FORCE_LOOPBACK      = true
 
 	IPV6_TLV_IOAM       = 49
@@ -99,22 +100,20 @@ func sendBackPacket(handle *pcap.Handle, packet gopacket.Packet) {
 	ipv6.SrcIP = ipv6Dst
 	ipv6.DstIP = ipv6Src
 
+	// Set next header field to NoNextHeader
+	hbh.NextHeader = layers.IPProtocolNoNextHeader
+
 	// Serialize the layers
-	if err := eth.SerializeTo(buffer, opts); err != nil {
-		log.Fatalf("Error serializing Ethernet header: %v", err)
-	}
-	if err := ipv6.SerializeTo(buffer, opts); err != nil {
-		log.Fatalf("Error serializing IPv6 header: %v", err)
-	}
-	if err := hbh.SerializeTo(buffer, opts); err != nil {
-		log.Fatalf("Error serializing Hop-by-Hop header: %v", err)
-	}
+	gopacket.SerializeLayers(buffer, opts,
+		eth,
+		ipv6,
+	)
 
 	// Send the packet
 	if err := handle.WritePacketData(buffer.Bytes()); err != nil {
 		log.Printf("Error sending packet: %v", err)
 	} else {
-		log.Printf("Sent packet to %s", ipv6.DstIP)
+		log.Printf("Sent packet to %s", ipv6Src)
 	}
 }
 
