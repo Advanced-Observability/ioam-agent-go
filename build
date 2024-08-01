@@ -1,0 +1,6 @@
+#!/bin/sh
+
+[ -f ioam_api.proto ] || wget https://raw.githubusercontent.com/Advanced-Observability/ioam-api/main/ioam_api.proto 
+
+protoc --go_out=. --go-grpc_out=. ioam_api.proto
+go build
