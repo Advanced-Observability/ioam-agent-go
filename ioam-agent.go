@@ -60,7 +60,7 @@ func main() {
 	interfaceName := flag.String("i", "", "Specify the interface to capture packets on")
 	outputToConsole := flag.Bool("o", false, "Output IOAM traces to console")
 	workerNmb := flag.Uint("g", 8, "Number of Goroutines for packet parsing")
-	flag.BoolVar(&doLoopback, "loopback", false, "Enable IOAM packet loopback")
+	flag.BoolVar(&doLoopback, "loopback", false, "Enable IOAM packet loopback (send back packet copy)")
 	showHelp := flag.Bool("h", false, "View help")
 	flag.Parse()
 
