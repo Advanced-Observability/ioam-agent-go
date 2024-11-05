@@ -4,11 +4,11 @@ The IOAM (In-situ Operations, Administration, and Maintenance) Agent is responsi
 
 ## Prerequisites
 
-1. **Go Programming Language**: Make sure Go is installed on your system. You can download it from [here](https://go.dev/doc/install).
+- [Go](https://go.dev/doc/install) (version 1.21 or higher)
 
-2. **PF_RING**: This application uses PF_RING to capture packets efficiently. You can install it from [packages](https://www.ntop.org/guides/pf_ring/get_started/packages_installation.html) or from [Git sources](https://www.ntop.org/guides/pf_ring/get_started/git_installation.html).
+- **PF_RING**: This application uses PF_RING to capture packets efficiently. You can install it from [packages](https://www.ntop.org/guides/pf_ring/get_started/packages_installation.html) or from [Git sources](https://www.ntop.org/guides/pf_ring/get_started/git_installation.html).
 
-3. **Protocol Buffers (`protoc`)**: Ensure `protoc` is installed with Go support to compile the `.proto` file. You can download it from [here](https://grpc.io/docs/protoc-installation/).
+- [Protocol Buffers (`protoc`)](https://grpc.io/docs/protoc-installation/): Ensure `protoc` is installed with Go support to compile the `.proto` file. You can download it from.
 
 ---
 
@@ -37,7 +37,7 @@ The IOAM (In-situ Operations, Administration, and Maintenance) Agent is responsi
 
 2. **Run the Agent**:
     - Capture packets on a specified interface:
-    
+
     ```bash
     ./ioam-agent -i <interface-name>
     ```
@@ -55,4 +55,3 @@ The IOAM (In-situ Operations, Administration, and Maintenance) Agent is responsi
 
 3. **Logs and Statistics**:
     The agent writes packet statistics (e.g., number of IPv6 and IOAM packets seen) to a file (`./agentStats`). They are updated in real-time.
-
