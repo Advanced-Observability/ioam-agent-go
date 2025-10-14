@@ -36,8 +36,8 @@ func parseNodeData(data []byte, traceType uint32) (ioamAPI.IOAMNode, error) {
 		offset += 4
 	}
 	if traceType&traceTypeBit1Mask != 0 {
-		node.IngressId = uint32(binary.BigEndian.Uint16(data[offset:offset+2]))
-		node.EgressId = uint32(binary.BigEndian.Uint16(data[offset+2:offset+4]))
+		node.IngressId = uint32(binary.BigEndian.Uint16(data[offset : offset+2]))
+		node.EgressId = uint32(binary.BigEndian.Uint16(data[offset+2 : offset+4]))
 		offset += 4
 	}
 	if traceType&traceTypeBit2Mask != 0 {
@@ -112,21 +112,21 @@ func parseIOAMTrace(data []byte) (*ioamAPI.IOAMTrace, bool, error) {
 				return nil, false, errors.New("invalid packet length")
 			}
 			opaqueLen := data[offset]
-			node.OSS.SchemaId = binary.BigEndian.Uint32(data[offset:offset+4])
+			node.OSS.SchemaId = binary.BigEndian.Uint32(data[offset : offset+4])
 			if len(data[offset:]) < 4+int(opaqueLen)*4 {
 				return nil, false, errors.New("invalid packet length")
 			}
-			node.OSS.Data = data[offset+4:offset+4+int(opaqueLen)*4]
+			node.OSS.Data = data[offset+4 : offset+4+int(opaqueLen)*4]
 			offset += 4 + int(opaqueLen)*4
 		}
 
 		nodes = append([]*ioamAPI.IOAMNode{&node}, nodes...)
 	}
 
-	trace := &ioamAPI.IOAMTrace {
-		BitField:     traceType << 8,
-		NamespaceId:  ns,
-		Nodes:        nodes,
+	trace := &ioamAPI.IOAMTrace{
+		BitField:    traceType << 8,
+		NamespaceId: ns,
+		Nodes:       nodes,
 	}
 
 	return trace, loopback, nil

@@ -1,46 +1,48 @@
 package main
 
 import (
-	"encoding/hex"
 	"encoding/binary"
+	"encoding/hex"
+	"fmt"
+	"io"
 	"log"
 	"net"
 	"strconv"
-  "io"
-  "fmt"
 
-	empty "google.golang.org/protobuf/types/known/emptypb"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
-  "google.golang.org/protobuf/types/known/emptypb"
+	"google.golang.org/protobuf/types/known/emptypb"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/exporters/jaeger"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/sdk/resource"
-	"go.opentelemetry.io/otel/trace"
 	tracesdk "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.12.0"
+	"go.opentelemetry.io/otel/trace"
 
 	ioamAPI "ioam-collector/github.com/Advanced-Observability/ioam-api"
 )
 
-var MASK_BIT0	= uint32(1 << 31) // Hop_Lim + Node Id (short format)
-var MASK_BIT1	= uint32(1 << 30) // Ingress/Egress Ids (short format)
-var MASK_BIT2	= uint32(1 << 29) // Timestamp seconds
-var MASK_BIT3	= uint32(1 << 28) // Timestamp fraction
-var MASK_BIT4	= uint32(1 << 27) // Transit Delay
-var MASK_BIT5	= uint32(1 << 26) // Namespace Data (short format)
-var MASK_BIT6	= uint32(1 << 25) // Queue depth
-var MASK_BIT7	= uint32(1 << 24) // Checksum Complement
-var MASK_BIT8	= uint32(1 << 23) // Hop_Lim + Node Id (wide format)
-var MASK_BIT9	= uint32(1 << 22) // Ingress/Egress Ids (wide format)
-var MASK_BIT10	= uint32(1 << 21) // Namespace Data (wide format)
-var MASK_BIT11	= uint32(1 << 20) // Buffer Occupancy
-var MASK_BIT22	= uint32(1 <<  9) // Opaque State Snapshot
+var MASK_BIT0 = uint32(1 << 31)  // Hop_Lim + Node Id (short format)
+var MASK_BIT1 = uint32(1 << 30)  // Ingress/Egress Ids (short format)
+var MASK_BIT2 = uint32(1 << 29)  // Timestamp seconds
+var MASK_BIT3 = uint32(1 << 28)  // Timestamp fraction
+var MASK_BIT4 = uint32(1 << 27)  // Transit Delay
+var MASK_BIT5 = uint32(1 << 26)  // Namespace Data (short format)
+var MASK_BIT6 = uint32(1 << 25)  // Queue depth
+var MASK_BIT7 = uint32(1 << 24)  // Checksum Complement
+var MASK_BIT8 = uint32(1 << 23)  // Hop_Lim + Node Id (wide format)
+var MASK_BIT9 = uint32(1 << 22)  // Ingress/Egress Ids (wide format)
+var MASK_BIT10 = uint32(1 << 21) // Namespace Data (wide format)
+var MASK_BIT11 = uint32(1 << 20) // Buffer Occupancy
+var MASK_BIT22 = uint32(1 << 9)  // Opaque State Snapshot
 
 func main() {
-	exp, err := jaeger.New(jaeger.WithCollectorEndpoint())
+	ctx := context.Background()
+	exp, err := otlptracegrpc.New(ctx,
+		otlptracegrpc.WithInsecure(),
+	)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -61,15 +63,13 @@ func main() {
 		log.Fatalf("Could not listen: %v", err)
 	}
 
-	log.Println("IOAM collector listening...")
+	log.Println("IOAM collector listening on 7123...")
 	log.Fatal(grpcServer.Serve(listen))
 }
 
 type Server struct {
 	ioamAPI.UnimplementedIOAMServiceServer
 }
-
-var empty_inst = new(empty.Empty)
 
 func (Server) Report(stream ioamAPI.IOAMService_ReportServer) error {
 	for {
@@ -91,9 +91,9 @@ func (Server) Report(stream ioamAPI.IOAMService_ReportServer) error {
 		binary.BigEndian.PutUint64(spanID[:], request.GetSpanId())
 
 		span_ctx := trace.NewSpanContext(trace.SpanContextConfig{
-			TraceID:	traceID,
-			SpanID:	spanID,
-			TraceFlags:	trace.FlagsSampled,
+			TraceID:    traceID,
+			SpanID:     spanID,
+			TraceFlags: trace.FlagsSampled,
 		})
 		ctx := trace.ContextWithSpanContext(context.Background(), span_ctx)
 
@@ -102,7 +102,7 @@ func (Server) Report(stream ioamAPI.IOAMService_ReportServer) error {
 
 		i := 1
 		for _, node := range request.GetNodes() {
-			key := "ioam_namespace" + strconv.FormatUint(uint64(request.GetNamespaceId()), 10) +"_node" + strconv.Itoa(i)
+			key := "ioam_namespace" + strconv.FormatUint(uint64(request.GetNamespaceId()), 10) + "_node" + strconv.Itoa(i)
 			str := ParseNode(node, request.GetBitField())
 
 			span.SetAttributes(attribute.String(key, str))

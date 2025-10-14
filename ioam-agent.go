@@ -17,17 +17,18 @@ import (
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 
 	ioamAPI "ioam-agent-go/github.com/Advanced-Observability/ioam-api"
 )
 
 const (
-	statsFileName     = "agentStats"
+	statsFileName = "agentStats"
 )
 
 var (
-	ipv6PacketCount   uint64
-	ioamPacketCount   uint64
+	ipv6PacketCount uint64
+	ioamPacketCount uint64
 )
 
 func main() {
@@ -86,7 +87,7 @@ func setupReporting(cfg *Config) func(trace *ioamAPI.IOAMTrace) {
 		log.Fatal("'IOAM_COLLECTOR' environment variable not defined")
 	}
 
-	conn, err := grpc.Dial(collector, grpc.WithInsecure())
+	conn, err := grpc.NewClient(collector, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("Failed to connect to Ioam collector %s: %v", collector, err)
 	}

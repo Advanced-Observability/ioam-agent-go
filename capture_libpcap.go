@@ -11,7 +11,7 @@ import (
 
 func initializeCapture(interfaceName string) (*gopacket.PacketSource, error) {
 	fmt.Println("[Ioam Agent] Initializing capture with libpcap")
-    handle, err := pcap.OpenLive(interfaceName, 2048, true, pcap.BlockForever)
+	handle, err := pcap.OpenLive(interfaceName, 2048, true, pcap.BlockForever)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't open device %s: %v", interfaceName, err)
 	}
