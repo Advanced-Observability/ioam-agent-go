@@ -69,7 +69,7 @@ echo -e "Done turning loopback interfaces up\n"
 
 echo "Setting routes..."
 #ip -netns encap route add db02::/64 via db01::2 dev veth0
-ip -netns encap route add db02::/64 encap ioam6 mode inline trace prealloc type 0xf6e000 ns 123 size 96 via db01::2 dev veth0
+ip -netns encap route add db02::/64 encap ioam6 mode inline trace prealloc type 0xf6e002 ns 123 size 96 via db01::2 dev veth0
 ip -netns decap route add db01::/64 via db02::2 dev veth0
 echo -e "Done set routes\n"
 
@@ -84,6 +84,8 @@ ip netns exec encap sysctl -w net.ipv6.conf.veth0.ioam6_enabled=1
 ip netns exec encap sysctl -w net.ipv6.conf.veth0.ioam6_id=1
 ip netns exec encap sysctl -w net.ipv6.conf.veth0.ioam6_id_wide=1
 ip -netns encap ioam namespace add 123 data 12345678 wide deadcafedeadcafe
+ip -netns encap ioam schema add 7 deadbeef
+ip -netns encap ioam namespace set 123 schema 7
 
 echo "Sysctl on transit..."
 ip netns exec transit sysctl -w net.ipv6.ioam6_id=2
@@ -95,6 +97,7 @@ ip netns exec transit sysctl -w net.ipv6.conf.veth1.ioam6_enabled=1
 ip netns exec transit sysctl -w net.ipv6.conf.veth1.ioam6_id=2
 ip netns exec transit sysctl -w net.ipv6.conf.veth1.ioam6_id_wide=2
 ip -netns transit ioam namespace add 123 data 12345678 wide deadcafedeadcafe
+ip -netns encap ioam namespace set 123 schema 7
 
 echo "Sysctl on decap..."
 ip netns exec decap sysctl -w net.ipv6.ioam6_id=3
@@ -103,6 +106,8 @@ ip netns exec decap sysctl -w net.ipv6.conf.veth0.ioam6_enabled=1
 ip netns exec decap sysctl -w net.ipv6.conf.veth0.ioam6_id=3
 ip netns exec decap sysctl -w net.ipv6.conf.veth0.ioam6_id_wide=3
 ip -netns decap ioam namespace add 123 data 12345678 wide deadcafedeadcafe
+ip -netns encap ioam schema add 7 deadbeef
+ip -netns encap ioam namespace set 123 schema 7
 
 echo -e "\nSleeping for 2 seconds..."
 sleep 2

@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/binary"
 	"encoding/hex"
-	"fmt"
 	"io"
 	"log"
 	"net"
@@ -75,11 +74,11 @@ func (Server) Report(stream ioamAPI.IOAMService_ReportServer) error {
 	for {
 		request, err := stream.Recv()
 		if err == io.EOF {
-			fmt.Println("Client closed stream")
+			log.Println("gRPC: Client closed stream")
 			return stream.SendAndClose(&emptypb.Empty{})
 		}
 		if err != nil {
-			log.Printf("Error receiving trace: %v", err)
+			log.Printf("gRPC: Error receiving trace: %v", err)
 			return err
 		}
 

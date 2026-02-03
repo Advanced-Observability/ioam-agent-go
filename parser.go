@@ -112,11 +112,15 @@ func parseIOAMTrace(data []byte) (*ioamAPI.IOAMTrace, bool, error) {
 				return nil, false, errors.New("invalid packet length")
 			}
 			opaqueLen := data[offset]
-			node.OSS.SchemaId = binary.BigEndian.Uint32(data[offset : offset+4])
 			if len(data[offset:]) < 4+int(opaqueLen)*4 {
 				return nil, false, errors.New("invalid packet length")
 			}
-			node.OSS.Data = data[offset+4 : offset+4+int(opaqueLen)*4]
+			if opaqueLen > 0 {
+				node.OSS = &ioamAPI.Opaque{
+					SchemaId: binary.BigEndian.Uint32(data[offset:offset+4]) & 0xFFF,
+					Data:     data[offset+4 : offset+4+int(opaqueLen)*4],
+				}
+			}
 			offset += 4 + int(opaqueLen)*4
 		}
 
@@ -124,7 +128,7 @@ func parseIOAMTrace(data []byte) (*ioamAPI.IOAMTrace, bool, error) {
 	}
 
 	trace := &ioamAPI.IOAMTrace{
-		BitField:    traceType << 8,
+		BitField:    traceType,
 		NamespaceId: ns,
 		Nodes:       nodes,
 	}

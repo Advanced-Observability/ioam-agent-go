@@ -6,8 +6,8 @@ import (
 	"io"
 	"log"
 	"os"
-	"time"
 	"sync/atomic"
+	"time"
 )
 
 func writeStats(fileName, iface string) {
@@ -26,8 +26,8 @@ func writeStats(fileName, iface string) {
 		rx := readInt(rxf)
 		tx := readInt(txf)
 		file.Seek(0, io.SeekStart)
-		fmt.Fprintf(file, "IPv6 packets parsed\t%d\nIoam packets parsed\t%d\nPackets received\t%d\nPackets transmitted\t%d\n",
-			atomic.LoadUint64(&ipv6PacketCount), atomic.LoadUint64(&ioamPacketCount), rx, tx)
+		fmt.Fprintf(file, "%s ipv6-parsed-packets=%d ioam-parsed-packets=%d %s-rx=%d %s-tx=%d\n", time.Now().Format(time.RFC3339),
+			atomic.LoadUint64(&ipv6PacketCount), atomic.LoadUint64(&ioamPacketCount), iface, rx, iface, tx)
 	}
 }
 

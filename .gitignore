@@ -1,3 +1,4 @@
 ioam-agent
 ioam-agent-pfring
-agentStats
+*.log
+*.csv

@@ -4,6 +4,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
@@ -11,7 +12,7 @@ import (
 )
 
 func initializeCapture(interfaceName string) (*gopacket.PacketSource, error) {
-	fmt.Println("[Ioam Agent] Initializing capture with PF_RING")
+	log.Println("[IOAM Agent] Initializing capture with PF_RING")
 	ring, err := pfring.NewRing(interfaceName, 2048, pfring.FlagPromisc)
 	if err != nil {
 		return nil, fmt.Errorf("Couldn't open device %s: %v", interfaceName, err)
