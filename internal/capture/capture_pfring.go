@@ -1,6 +1,6 @@
 //go:build pfring
 
-package main
+package capture
 
 import (
 	"fmt"
@@ -11,7 +11,7 @@ import (
 	"github.com/google/gopacket/pfring"
 )
 
-func initializeCapture(interfaceName string) (*gopacket.PacketSource, error) {
+func InitializeCapture(interfaceName string) (*gopacket.PacketSource, error) {
 	log.Println("[IOAM Agent] Initializing capture with PF_RING")
 	ring, err := pfring.NewRing(interfaceName, 2048, pfring.FlagPromisc)
 	if err != nil {

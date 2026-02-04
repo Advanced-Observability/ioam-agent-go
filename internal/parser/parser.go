@@ -1,10 +1,15 @@
-package main
+package parser
 
 import (
 	"encoding/binary"
 	"errors"
+	"log"
+	"sync/atomic"
 
+	"github.com/Advanced-Observability/ioam-agent/internal/stats"
 	ioamAPI "github.com/Advanced-Observability/ioam-api"
+	"github.com/google/gopacket"
+	"github.com/google/gopacket/layers"
 )
 
 const (
@@ -155,7 +160,7 @@ func parseHopByHop(data []byte) ([]*ioamAPI.IOAMTrace, bool, error) {
 		optLen := int(data[offset+1] + 2)
 
 		if optType == ipv6TLVIOAM && data[offset+3] == ioamPreallocTrace {
-			ioamPacketCount++
+			atomic.AddUint64(&stats.IoamPacketCount, 1)
 
 			trace, iloopback, err := parseIOAMTrace(data[offset+4 : offset+optLen])
 			loopback = iloopback
@@ -172,4 +177,20 @@ func parseHopByHop(data []byte) ([]*ioamAPI.IOAMTrace, bool, error) {
 	}
 
 	return traces, loopback, nil
+}
+
+func ParsePacket(packet gopacket.Packet, report func(*ioamAPI.IOAMTrace)) {
+	hbhLayer := packet.Layer(layers.LayerTypeIPv6HopByHop)
+	if hbhLayer == nil {
+		return
+	}
+	hbh, _ := hbhLayer.(*layers.IPv6HopByHop)
+	traces, _, err := parseHopByHop(hbh.LayerContents())
+	if err != nil {
+		log.Printf("Hop-by-Hop parse error: %v", err)
+		return
+	}
+	for _, trace := range traces {
+		report(trace)
+	}
 }

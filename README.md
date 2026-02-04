@@ -1,12 +1,10 @@
 # IOAM Agent
 
-The IOAM (In-situ Operations, Administration, and Maintenance) Agent captures IPv6 packets containing IOAM Hop-by-Hop headers, extracts IOAM traces, and reports them to an IOAM collector (or prints them to the console).
+The IOAM (In-situ Operations, Administration, and Maintenance) agent inspects IPv6 traffic, extracts IOAM trace data, and reports them to an IOAM collector or outputs them locally, to the console or to a file. It currently supports packets with IOAM Hop-by-Hop Option header containing IOAM (Pre-allocated) Trace Option-Type.
 
 ## Prerequisites
 
 - [Go](https://go.dev/doc/install) (version 1.21 or higher)
-
-- [Protocol Buffers (`protoc`)](https://grpc.io/docs/protoc-installation/): Ensure `protoc` is installed with Go support to compile the `.proto` file. You can download it from.
 
 - (Optional) **PF_RING**: This application may use PF_RING to capture packets more efficiently. You can install it from [packages](https://www.ntop.org/guides/pf_ring/get_started/packages_installation.html) or from [Git sources](https://www.ntop.org/guides/pf_ring/get_started/git_installation.html).
 
@@ -14,27 +12,15 @@ The IOAM (In-situ Operations, Administration, and Maintenance) Agent captures IP
 
 ## Building the IOAM Agent
 
-1. **Clone the Repository**:
-    ```bash
-    git clone https://github.com/Advanced-Observability/ioam-agent-go
-    cd ioam-agent-go
-    ```
+```bash
+git clone https://github.com/Advanced-Observability/ioam-agent
+cd ioam-agent
+build
+```
 
-2. **Generate Protobuf Files**:
-    ```bash
-    wget https://raw.githubusercontent.com/Advanced-Observability/ioam-api/main/ioam_api.proto
-    go generate
-    ```
+### Other targets
 
-3. **Run the Build Script**:
-    The script fetches the `ioam_api.proto` file, compiles it using `protoc`, and then builds the application.
 
-    ```bash
-    ./build.sh
-    ```
-
-    The script produces the binary `ioam-agent` and if the PF_RING user-land library is available, the binary `ioam-agent-pfring`.
-    The two applications are identical expect for the way it retrieves live packets, the PF_RING version will have a much greater throughput.
 
 ---
 

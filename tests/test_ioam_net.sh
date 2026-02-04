@@ -115,6 +115,6 @@ sleep 2
 echo -e "\n\n** TESTING **"
 #sudo ip netns exec encap ping -c 1 db01::1
 #sudo ip netns exec encap ping -c 1 db01::2
-sudo ip netns exec encap ping db02::1
+sudo ip netns exec encap ping -i 0.002 db02::1
 #sudo ip netns exec encap ping -c 1 db02::2
 echo -e "\n\n** DONE **\n\n"

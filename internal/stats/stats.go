@@ -1,4 +1,4 @@
-package main
+package stats
 
 import (
 	"bufio"
@@ -6,11 +6,15 @@ import (
 	"io"
 	"log"
 	"os"
-	"sync/atomic"
 	"time"
 )
 
-func writeStats(fileName, iface string) {
+var (
+	Ipv6PacketCount uint64 = 0
+	IoamPacketCount uint64 = 0
+)
+
+func WriteStats(fileName, iface string) {
 	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
 
@@ -26,8 +30,8 @@ func writeStats(fileName, iface string) {
 		rx := readInt(rxf)
 		tx := readInt(txf)
 		file.Seek(0, io.SeekStart)
-		fmt.Fprintf(file, "%s ipv6-parsed-packets=%d ioam-parsed-packets=%d %s-rx=%d %s-tx=%d\n", time.Now().Format(time.RFC3339),
-			atomic.LoadUint64(&ipv6PacketCount), atomic.LoadUint64(&ioamPacketCount), iface, rx, iface, tx)
+		fmt.Fprintf(file, "%s ipv6-parsed-packets=%d ioam-parsed-packets=%d %s-rx=%d %s-tx=%d\n",
+			time.Now().Format(time.RFC3339), Ipv6PacketCount, IoamPacketCount, iface, rx, iface, tx)
 	}
 }
 

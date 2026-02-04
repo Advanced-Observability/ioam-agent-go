@@ -1,6 +1,6 @@
 //go:build !pfring
 
-package main
+package capture
 
 import (
 	"fmt"
@@ -10,7 +10,7 @@ import (
 	"github.com/google/gopacket/pcap"
 )
 
-func initializeCapture(interfaceName string) (*gopacket.PacketSource, error) {
+func InitializeCapture(interfaceName string) (*gopacket.PacketSource, error) {
 	log.Println("[IOAM Agent] Initializing capture with libpcap")
 	handle, err := pcap.OpenLive(interfaceName, 2048, true, pcap.BlockForever)
 	if err != nil {
