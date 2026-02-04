@@ -1,8 +1,6 @@
 //go:build !afpacket
 // +build !afpacket
 
-//go:generate protoc --go_out=. --go-grpc_out=. ioam_api.proto
-
 package main
 
 import (
@@ -20,7 +18,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
-	ioamAPI "ioam-agent-go/github.com/Advanced-Observability/ioam-api"
+	ioamAPI "github.com/Advanced-Observability/ioam-api"
 )
 
 var (

@@ -4,7 +4,7 @@ import (
 	"encoding/binary"
 	"errors"
 
-	ioamAPI "ioam-agent-go/github.com/Advanced-Observability/ioam-api"
+	ioamAPI "github.com/Advanced-Observability/ioam-api"
 )
 
 const (

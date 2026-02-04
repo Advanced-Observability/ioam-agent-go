@@ -1,17 +1,17 @@
-module ioam-agent-go
+module github.com/Advanced-Observability/ioam-agent
 
-go 1.23.2
+go 1.25.6
 
 require (
-	github.com/golang/protobuf v1.5.4
+	github.com/Advanced-Observability/ioam-api v0.0.0-20260204130817-42dd1e6ec517
 	github.com/google/gopacket v1.1.19
-	google.golang.org/grpc v1.73.0
-	google.golang.org/protobuf v1.36.6
+	google.golang.org/grpc v1.78.0
 )
 
 require (
-	golang.org/x/net v0.41.0 // indirect
-	golang.org/x/sys v0.33.0 // indirect
-	golang.org/x/text v0.26.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250603155806-513f23925822 // indirect
+	golang.org/x/net v0.47.0 // indirect
+	golang.org/x/sys v0.38.0 // indirect
+	golang.org/x/text v0.31.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20251029180050-ab9386a59fda // indirect
+	google.golang.org/protobuf v1.36.11 // indirect
 )
