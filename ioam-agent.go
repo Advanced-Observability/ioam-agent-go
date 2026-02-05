@@ -5,7 +5,6 @@ package main
 
 import (
 	"log"
-	"sync/atomic"
 
 	ioamAPI "github.com/Advanced-Observability/ioam-api"
 	"github.com/google/gopacket"
@@ -38,7 +37,6 @@ func main() {
 }
 
 func worker(id uint, packets <-chan gopacket.Packet, report func(*ioamAPI.IOAMTrace)) {
-	atomic.AddUint64(&stats.Ipv6PacketCount, uint64(len(packets)))
 	for packet := range packets {
 		parser.ParsePacket(packet, report)
 	}

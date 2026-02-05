@@ -180,6 +180,7 @@ func parseHopByHop(data []byte) ([]*ioamAPI.IOAMTrace, bool, error) {
 }
 
 func ParsePacket(packet gopacket.Packet, report func(*ioamAPI.IOAMTrace)) {
+	atomic.AddUint64(&stats.Ipv6PacketCount, 1)
 	hbhLayer := packet.Layer(layers.LayerTypeIPv6HopByHop)
 	if hbhLayer == nil {
 		return

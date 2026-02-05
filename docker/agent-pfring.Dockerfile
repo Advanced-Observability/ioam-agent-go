@@ -8,9 +8,10 @@ RUN apt-get update && \
 
 WORKDIR /apps
 
-COPY ../*.go .
-COPY ../internal .
-RUN go mod init ioam-agent
+COPY ../ioam-agent.go .
+COPY ../internal/ ./internal/
+COPY ../go.mod .
+COPY ../go.sum .
 RUN go mod tidy
 RUN go build -tags pfring -o ioam-agent-pfring
 

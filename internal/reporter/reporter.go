@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"sync/atomic"
 	"time"
 
 	"google.golang.org/grpc"
@@ -14,8 +13,6 @@ import (
 	"github.com/Advanced-Observability/ioam-agent/internal/config"
 	ioamAPI "github.com/Advanced-Observability/ioam-api"
 )
-
-var dumpedNode uint64 = 0
 
 type Reporter func(trace *ioamAPI.IOAMTrace)
 
@@ -35,7 +32,7 @@ func SetupReporting(cfg *config.Config) Reporter {
 		if err != nil {
 			log.Printf("Error opening file: %v", err)
 		} else {
-			fmt.Fprintf(f, "index,namespace_id,tracetype,hop_limit,node_id,ingress_id,egress_id,timestamp_secs,timestamp_frac,transit_delay,queue_depth,csum_comp,buffer_occupancy,ingress_id_wide,egress_id_wide,id_wide,namespace_data,namespace_data_wide,oss_schema_id,oss_data\n")
+			fmt.Fprintf(f, "timestamp,namespace_id,tracetype,hop_limit,node_id,ingress_id,egress_id,timestamp_secs,timestamp_frac,transit_delay,queue_depth,csum_comp,buffer_occupancy,ingress_id_wide,egress_id_wide,id_wide,namespace_data,namespace_data_wide,oss_schema_id,oss_data\n")
 			reporters = append(reporters, func(trace *ioamAPI.IOAMTrace) {
 				dumpToFile(trace, f)
 			})
@@ -83,8 +80,8 @@ func SetupReporting(cfg *config.Config) Reporter {
 
 func dumpToFile(trace *ioamAPI.IOAMTrace, f *os.File) {
 	for _, node := range trace.GetNodes() {
-		toPrint := fmt.Sprintf("%d,%s,%d,%06x,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%04x,%08x,",
-			dumpedNode, time.Now().Format(time.RFC3339), trace.GetNamespaceId(), trace.GetBitField(),
+		toPrint := fmt.Sprintf("%s,%d,%06x,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%04x,%08x,",
+			time.Now().Format(time.RFC3339), trace.GetNamespaceId(), trace.GetBitField(),
 			node.GetHopLimit(), node.GetId(), node.GetIngressId(), node.GetEgressId(),
 			node.GetTimestampSecs(), node.GetTimestampFrac(), node.GetTransitDelay(), node.GetQueueDepth(),
 			node.GetCsumComp(), node.GetBufferOccupancy(), node.GetIngressIdWide(), node.GetEgressIdWide(),
@@ -98,8 +95,6 @@ func dumpToFile(trace *ioamAPI.IOAMTrace, f *os.File) {
 
 		if _, err := f.WriteString(toPrint); err != nil {
 			log.Printf("Error writing to file: %v", err)
-		} else {
-			atomic.AddUint64(&dumpedNode, 1)
 		}
 	}
 }

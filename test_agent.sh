@@ -1,13 +1,15 @@
 #!/bin/bash
 
-# Script to test IOAM with fake network created using network namespaces
+# Script to test the IOAM agent with network namespaces
 
 if [ "$EUID" -ne 0 ]; then
   echo "Please run as root."
   exit
 fi
 
-# Remove namespaces
+make
+
+# Remove previous namespaces
 cleanup()
 {
   ip netns delete encap || true
@@ -15,7 +17,7 @@ cleanup()
   ip netns delete decap || true
 }
 
-echo "Cleaning everything up..."
+echo "Cleaning up..."
 cleanup
 echo -e "Done cleaning.\n"
 
@@ -112,9 +114,14 @@ ip -netns encap ioam namespace set 123 schema 7
 echo -e "\nSleeping for 2 seconds..."
 sleep 2
 
-echo -e "\n\n** TESTING **"
-#sudo ip netns exec encap ping -c 1 db01::1
-#sudo ip netns exec encap ping -c 1 db01::2
-sudo ip netns exec encap ping -i 0.002 db02::1
-#sudo ip netns exec encap ping -c 1 db02::2
+echo -e "\n\n** TESTING (Ctrl-C to stop IOAM agent) **"
+sudo ip netns exec encap ping -i 0.5 db02::1
+PING_PID=$!
+sudo ip netns exec decap ./ioam-agent -i veth0 -d traces.csv -c localhost:12345678
+sudo kill $PING_PID
+
 echo -e "\n\n** DONE **\n\n"
+
+echo "Cleaning up..."
+cleanup
+echo -e "Done cleaning.\n"

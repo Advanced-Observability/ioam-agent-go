@@ -9,7 +9,7 @@ DOCKER_AGENT    := $(DOCKER_DIR)/agent.Dockerfile
 DOCKER_PFRING   := $(DOCKER_DIR)/agent-pfring.Dockerfile
 
 GO              := go
-DOCKER          := docker
+DOCKER          := docker buildx
 
 CGO_LDFLAGS     := -L/usr/local/lib -Wl,-rpath,/usr/local/lib
 
@@ -29,20 +29,19 @@ ioam-agent-pfring: $(GO_SOURCES)
 	CGO_LDFLAGS="$(CGO_LDFLAGS)" \
 	$(GO) build -tags pfring -o $(BINARY_PFRING)
 
-docker: docker-agent docker-pfring
-
-docker-agent: $(BINARY) $(DOCKER_AGENT)
+docker: $(DOCKER_AGENT)
 	@echo "[*] Building Docker image $(IMAGE_AGENT)..."
 	@$(DOCKER) build \
 		-f $(DOCKER_AGENT) \
 		-t $(IMAGE_AGENT) \
 		.
 
-docker-pfring: $(BINARY_PFRING) $(DOCKER_PFRING)
+docker-pfring: $(DOCKER_PFRING)
 	@echo "[*] Building Docker image $(IMAGE_PFRING)..."
 	@$(DOCKER) build \
 		-f $(DOCKER_PFRING) \
 		-t $(IMAGE_PFRING) \
+		.
 
 clean:
 	@echo "[*] Removing executables..."
